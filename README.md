@@ -1,7 +1,7 @@
 # preeclamspsia_Nonn_etal
 A repository for code used to analyse data and create figures presented in Nonn et al 2021 describing the single cell spatio-temporal landscape of placenta tissue in preeclampsia. 
 
-Key contributors: 
+Key contributors (in computational analysis): 
 
 1. CellRanger: Dr.Cornelius Fischer (Email: cornelius.fischer@mdc-berlin.de)
 2. snRNA seq analysis: Olivia Debnath (Email: olivia.debnath@bih-charite.de)
