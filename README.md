@@ -3,7 +3,7 @@ A repository for code used to analyse data and create figures presented in Nonn 
 
 Key contributors (in computational analysis): 
 
-1. CellRanger: Dr.Cornelius Fischer (Email: cornelius.fischer@mdc-berlin.de)
-2. snRNA seq analysis: Olivia Debnath (Email: olivia.debnath@bih-charite.de). The cell type annotation was done jointly with Daniela S. Valdes. 
-3. ISS analysis: Sebastian Tiesmeyer (Email: sebastian.tiesmeyer@bih-charite.de) & Tobias Graf (Email: tobias.graf@charite.de)
-4. 10X visium: Kerim Ali Secener (Email: AliKerim.Secener@mdc-berlin.de) 
+1. CellRanger: Dr.Cornelius Fischer (Institute for Medical Systems Biology, Berlin)
+2. snRNA seq analysis: Olivia Debnath (Berlin Institute of Health & Charité). The cell type annotation was done jointly with Daniela S. Valdes (MDC Berlin). 
+3. ISS analysis: Sebastian Tiesmeyer (Berlin Institute of Health & Charité) & Tobias Graf (Charité)
+4. 10X visium: Kerim Ali Secener (MDC Berlin) 
