@@ -4,6 +4,6 @@ A repository for code used to analyse data and create figures presented in Nonn 
 Key contributors (in computational analysis): 
 
 1. CellRanger: Dr.Cornelius Fischer (Institute for Medical Systems Biology, Berlin)
-2. snRNA seq analysis: Olivia Debnath (Berlin Institute of Health & Charité). The cell type annotation was done jointly with Daniela S. Valdes (MDC Berlin). 
+2. snRNA seq analysis: Olivia Debnath (Berlin Institute of Health & Charité). The biological interpretation of cell type annotation was done jointly with Daniela S. Valdes (MDC Berlin). 
 3. ISS analysis: Sebastian Tiesmeyer (Berlin Institute of Health & Charité) & Tobias Graf (Charité)
 4. 10X visium: Kerim Ali Secener (MDC Berlin) 
