@@ -1,0 +1,78 @@
+Consists of python scripts & notebooks dedicated towards the analysis of control and pre-eclamptic (diseased) placenta analysis using single nuclei RNA-seq data. 
+
+
+Understanding the order & function of the scripts:
+
+I). SP014_SP082_cellbender_placenta_QC_270122_S0.py: 
+Making a concatenated Cellbender processed, scanpy QC filtered & log-normalized object for SP014 (10X V2) & SP082 (10X V3) object. 
+Metadata store were verified from scRNAseq_metadata_early_controls.xlsx; obtained from Dr. Florian Herse on 13.11.2021. 
+Also, explores the quality control comparison of SP014 and SP082 cohort. 
+The output H5AD file were subsequently used for training & testing (celltypist) below & other downstream analysis. 
+
+II) Placenta_celltypist_control_predictions_28012022_S1.ipynb:  
+Using CellTypist based automated Logistic regression classifiers optimized by the stochastic gradient descent algorithm. 
+The notebook will enable (preliminary) cell-annotation prediction using our previous snRNA-seq placenta dataset (SP014 cohort controls; from 2021 submission) as a 
+"training dataset." The test data was newly processed Cellbender data (merged with SP082 early samples) from Step-I. 
+The purpose was mainly to classify the control villi test data (as the SP136 disease samples were sequenced later in March'22) & only use a reference to 
+inspect the (unsupervised) Leiden clusters. Hence, the predictions don't refer to final annotations. 
+
+III). Placenta_atlas_integration_controls_LV15_280122_S2.py: 
+Data harmonization of SP014 (control) & SP082 early first-trimester samples and perform differential marker analysis for cell annotations. 
+The analysis was restricted to controls-only because of the earlier availability of these samples (sequenced by January'22). 
+The PE samples were integrated later in April'22 since the SP136 samples were sequenced late. The notebook serves as an initial analysis of control villi. 
+
+IV). Placenta_scVI_controls_exploratory_celltyping_LV15_S3.ipynb:
+Exploratory analysis of the Leiden clusters- using known markers, LDA & qualitative visualization of integration (data structures). 
+
+V). Placenta_controls_clustering_exploratory_LV15_S4.ipynb: 
+Mapping of the Leiden clusters to a cell type/state annotation based on marker analysis of the control villi. 
+Note that, certain annotations were refined later based on trajectory analysis and further investigation. 
+Notebooks from step III & IV are separately shown for visualizing the ground work went into the analysis. 
+
+VI). Trajectory_analysis_trophoblasts_22032022.ipynb: 
+Reconstruction of trophoblast differentiation using STREAM & finding pseudotime based marker genes. 
+
+VII). SP014_SP082_SP136_placenta_scvi_harmonization_25032022.py:
+Data harmonization of all placenta samples (SP014, SP082 & SP136) using single-cell variational inference (scVI): a scalable framework for the 
+probabilistic representation and analysis of gene expression in single cells. scVI uses stochastic optimization and deep neural networks to aggregate 
+information across similar cells and genes and to approximate the distributions that underlie observed expression values. 
+
+Reference: Lopez, R., Regier, J., Cole, M.B. et al. Deep generative modeling for single-cell transcriptomics. 
+Nat Methods 15, 1053–1058 (2018). https://doi.org/10.1038/s41592-018-0229-2
+
+scVI performs excellently for complex integration tasks & is highly recommended by Luecken et. al Nature Methods 2021. 
+It's known to maintain a balance between batch mixing and bio-conservation of clusters after harmonization. 
+- k-nearest neighbors purity that ranges from 0 to 1, with higher values meaning better preservation of neighbor structure in the individual datasets after harmonization.
+- Entropy of batch mixing where higher values mean that the cells from different datasets are well mixed.
+
+Reference: Luecken, M.D., Büttner, M., Chaichoompu, K. et al. Benchmarking atlas-level data integration in single-cell genomics. 
+Nat Methods 19, 41–50 (2022). https://doi.org/10.1038/s41592-021-01336-8
+
+P.S: The term harmonization (rather than batch effect correction) emerged to emphasize that the input transcriptomic datasets may come from 
+very different sources (e.g., tech/lab/library chemistry) and from samples with a different cell type/state composition. 
+
+VIII). Placenta_marker_analysis_LogisticRegression_290322.r:
+Placenta cell type/state marker analysis using multi-variate Logistic Regression. 
+Corrected for latent variables/confounders such as "nCount_RNA", "nFeature_RNA", "percent.mt" (continuous covariates), ~disease (control vs PE) 
+and library (10X V3 vs 10X V2) to prevent the effects of technical artifacts on DEG selection. 
+
+IX). Placenta_analysis_manuscript_2022.ipynb: 
+Major manuscript analysis: including UMAP visualization of placenta cell types/states (main figure-1C; villi); tabulating cell type/state composition 
+per conditions & analyzing composition changes between gestational time-points and evaluation of data harmonization (inc. batch-effect correction).
+
+X). PE_vs lateC_marker_analysis_LogisticRegression.r: 
+To determine the differentially expressed genes for disease (eoPE) against late controls, the LR framework (implemented Seurat’s FindMarkers function) was applied 
+to respective cell types/states. The number of UMI, #gene counts, percentage of mitochondrial transcripts, and the percentage of sex-specific transcripts per nuclei
+were used as continuous covariates. Importantly, a cell type/state-specific preterm-score was calculated using the significant preterm vs. term DEGs. 
+This was explicitly performed to prevent strong preterm specific effects in the analysis since eoPE arises 6-8 weeks before healthy term. 
+ 
+Since no differential features were separately reported for the vSTB preterm, the other trophoblast genes (reported for vCTB) were used for correction. 
+Additionally, SLIT2 & ROBO1 have been included in the module-score based correction as they are associated with risk for spontaneous preterm birth. 
+Cell type/state-specific labor signatures were considered for correction by extracting the term in-labor vs. no-labor differential genes from respective groups. 
+Only those genes having a log2 fold-change cut-off of 0.25 and expressed in at least 10% of cells within each group were reported as significant, given adjusted 
+p-value < 0.05 (Bonferonni corrected). Both up & down-regulated genes were reported. No cell type/state exhibited a significant composition shift in eoPE 
+relative to the term controls (except for vHBC)- hence, down sampling was only performed for the vHBC. 
+
+For cell types such as vCCT, dEVT, vCTBp, vCTBpf, dDSTB, dPC, dBcells no analysis was performed owing to extreme sparsity in the eoPE group. 
+None of our samples were confounded with a major co-occurring disease. Also, we found no significant differences between maternal age or BMI between 
+our PE and late control groups- hence, a statistical correction was not required. 

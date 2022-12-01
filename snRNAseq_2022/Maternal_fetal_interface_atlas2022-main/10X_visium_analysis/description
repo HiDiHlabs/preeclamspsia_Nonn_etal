@@ -1,0 +1,15 @@
+Seurat processing of the Visium count matrix: 
+The 10x output folder was read using Load10X_Spatial function implemented in Seurat v3. The object was then normalzsed using SCTransform function. 
+After that, PCA was calculated using RunPCA() and first 20 were selected for identifying the k-nearest neighbours of each spot with FindNeighbors function. 
+Finally, clustering was performed via FindClusters (resolution = 0.2). 
+
+Spotlight based deconvolution of Visium data: 
+The spotlight object was generated using the spotlight_deconvolution function in SPOTlight (Version 0.1.7) by supplying the early villi subset 
+(from the placental single- 1445 nuclei data) as reference. The marker table for the nuclei clusters was initially generated based on Logistic Regression 
+method implemented in Seurat as discussed & subsequently filtered to yield the best topic profile representative of each cell type/state found in the dataset 
+(will be made available on Zenodo).
+
+The non-negative matrix factorisation (NMF - nsNMF) regression as well as Non-negative Least Squares (NNLS) regression were used for deconvolution as 
+implemented in SPOTlight. Cells contributing to less than 1% of the spot composition were removed to tackle sparsity using min_cont = 0.01. 
+The deconvoluted spots were assessed by investigating the topic profiles of the cell type (Extended Data Figure 1f) and the nature of individual topics within 
+a cell type/state. 
