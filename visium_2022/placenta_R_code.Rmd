@@ -1,0 +1,194 @@
+---
+title: "Visium analysis placenta project"
+author: "Ali Kerim Secener"
+date: "11/16/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = F)
+```
+
+## Seurat processing
+We load in the 10X output folders and process with Seurat.
+
+
+```{r Seurat}
+placenta <- Load10X_Spatial(filename = "filtered_feature_bc_matrix.h5", data.dir = "~/Documents/rproject/placenta/visium/A/outs/")
+
+placenta <- SCTransform(placenta, assay = "Spatial", verbose = F)
+
+placenta <- RunPCA(placenta, assay = "SCT", verbose = FALSE)
+placenta <- FindNeighbors(placenta, reduction = "pca", dims = 1:30)
+placenta <- FindClusters(placenta, verbose = FALSE)
+placenta <- RunUMAP(placenta, reduction = "pca", dims = 1:30)
+
+
+### compute spatially variable genes
+
+placenta <- FindSpatiallyVariableFeatures(placenta, assay = "SCT", features = VariableFeatures(placenta)[1:1000],
+    selection.method = "markvariogram")
+
+saveRDS(placenta, "~/Documents/rproject/placenta/visium/A/placenta_visium_object.rds")
+```
+
+## Spotlight
+
+```{r Spotlight}
+
+library(SPOTlight)
+### Load seurat marker table (FindAllMarkers) from single-nuclei dataset
+LR <- read.csv("insert latest marker table here",row.names = NULL, sep = ",")
+LR_top60 = LR %>% group_by(cluster) %>% top_n(60, avg_log2FC)
+### combine to supergroups (vSTB = vSTB1,vSTB2, vSTBjuv; vCTB = vCTB, vCTBp; vHBC = vHBC, vHBCp)
+LR_top60[LR_top60$cluster %in% "vSTB1", "cluster"] = "vSTB"
+LR_top60[LR_top60$cluster %in% "vSTB2", "cluster"] = "vSTB"
+LR_top60[LR_top60$cluster %in% "vSTBjuv", "cluster"] = "vSTB"
+LR_top60[LR_top60$cluster %in% "vCTBp", "cluster"] = "vCTB"
+LR_top60[LR_top60$cluster %in% "vHBCp", "cluster"] = "vHBC"
+write.csv(LR_top60, "~/Documents/rproject/placenta/LR_filtered_for_spotlight.csv")
+
+
+LR_top60 = LR_top60[-grep(LR_top60$gene, pattern = "^MT-"), ] ## remove mitochondrial genes
+
+spatial_object = placenta
+
+### read reference single cell object
+villi = readRDS("insert latest object name here")
+### Run Spotlight
+spotlight_ls <- spotlight_deconvolution(
+  se_sc = villi, ##input your single cell/nuclei object from seurat
+  counts_spatial = spatial_object@assays$Spatial@counts,
+  clust_vr = "insert annotation column name", # Variable in sc_seu containing the cell-type annotation
+  cluster_markers = LR_top60, # Dataframe with the marker genes
+  cl_n = 100, # number of cells per cell type to use
+  hvg = 0, # Number of HVG to use
+  ntop = NULL, # How many of the marker genes to use (by default all)
+  transf = "uv", # Perform unit-variance scaling per cell and spot prior to factorzation and NLS
+  method = "nsNMF", # Factorization method
+  min_cont = 0 # Remove those cells contributing to a spot below a certain threshold 
+)
+
+saveRDS(spotlight_ls, "~/Documents/rproject/placenta/visium/A/spotlight_ls_placenta.rds")
+
+
+nmf_mod <- spotlight_ls[[1]]
+decon_mtrx <- spotlight_ls[[2]]
+
+decon_mtrx_sub <- decon_mtrx[, colnames(decon_mtrx) != "res_ss"]
+decon_mtrx_sub[decon_mtrx_sub < 0.10] <- 0 # remove cells contributing to less than 10% of the spots identity
+decon_mtrx <- cbind(decon_mtrx_sub, "res_ss" = decon_mtrx[, "res_ss"])
+rownames(decon_mtrx) <- colnames(spatial_object)
+
+decon_df <- decon_mtrx %>%
+  data.frame() %>%
+  tibble::rownames_to_column("barcodes")
+
+spatial_object@meta.data <- spatial_object@meta.data %>%
+  tibble::rownames_to_column("barcodes") %>%
+  dplyr::left_join(decon_df, by = "barcodes") %>%
+  tibble::column_to_rownames("barcodes")
+
+
+
+cell_types_all <- colnames(decon_mtrx)[which(colnames(decon_mtrx) != "res_ss")]
+
+
+##plot the entire cell types
+png("~/Documents/rproject/placenta/visium_figure/spotlight_highres_deconvolution.pdf", width = 2000, height = 2000, res = 600)
+spatial_scatterpie(se_obj = spatial_object, 
+                   cell_types_all = cell_types_all,
+                   img_path = "~/Documents/rproject/placenta/visium/A/spatial/tissue_lowres_image.png", pie_scale = 0.4, scatterpie_alpha = 1)
+
+dev.off()
+
+
+
+##plot the desired cell type(s) (Fig 2G,2K, EDF5j)
+spatial_scatterpie(se_obj = spatial_object,
+                              cell_types_all = cell_types_all[c(4,8)],
+                              img_path = "../../placenta/visium/B/spatial/tissue_lowres_image.png",
+                              cell_types_interest = c("vSTB","vCCT"),
+                              pie_scale = 0.4,scatterpie_alpha = 0.5)
+
+
+### save final object
+saveRDS(spatial_object, "~/Documents/rproject/placenta/visium/A/placenta_visium_object.rds")
+
+###interaction graph
+graph_ntw <- SPOTlight::get_spatial_interaction_graph(decon_mtrx = decon_mtrx[, cell_types_all])
+
+
+deg <- degree(graph_ntw, mode="all")
+
+# Get color palette for difusion
+edge_importance <- E(graph_ntw)$importance
+
+# Select a continuous palette
+qual_col_pals <- brewer.pal.info[brewer.pal.info$category == 'seq',]
+
+# Create a color palette
+getPalette <- colorRampPalette(brewer.pal(9, "YlOrRd"))
+
+# Get how many values we need
+grad_edge <- seq(0, max(edge_importance), 0.1)
+
+# Generate extended gradient palette dataframe
+graph_col_df <- data.frame(value = as.character(grad_edge),
+                           color = getPalette(length(grad_edge)),
+                           stringsAsFactors = FALSE)
+# Assign color to each edge
+color_edge <- data.frame(value = as.character(round(edge_importance, 1)), stringsAsFactors = FALSE) %>%
+  dplyr::left_join(graph_col_df, by = "value") %>%
+  dplyr::pull(color)
+
+# Open a pdf file
+plot(graph_ntw,
+     # Size of the edge
+     edge.width = edge_importance,
+     edge.color = color_edge,
+     # Size of the buble
+     vertex.size = deg,
+     vertex.color = "#cde394",
+     vertex.frame.color = "white",
+     vertex.label.color = "black",
+     vertex.label.family = "Arial", # Font family of the label (e.g.“Times”, “Helvetica”)
+     layout = layout.circle)
+
+
+
+decon_mtrx_sub <- decon_mtrx[, cell_types_all]
+decon_mtrx_sub <- decon_mtrx_sub[, colSums(decon_mtrx_sub) > 0]
+
+# Compute correlation
+decon_cor <- cor(decon_mtrx_sub, method = "pearson")
+
+# Compute correlation P-value
+p.mat <- corrplot::cor.mtest(mat = decon_mtrx_sub, conf.level = 0.95)
+
+# Visualize correlation plot
+ggcorrplot::ggcorrplot(
+  corr = decon_cor,
+  p.mat = p.mat[[1]],
+  hc.order = TRUE,
+  type = "full",
+  insig = "blank",
+  lab = TRUE,
+  outline.col = "lightgrey",
+  method = "square",
+  # colors = c("#4477AA", "white", "#BB4444"))
+  colors = c("#6D9EC1", "white", "#E46726"),
+  title = "Predicted cell-cell proportion correlation",
+  legend.title = "Correlation\n(Pearson)") +
+  ggplot2::theme(
+    plot.title = ggplot2::element_text(size = 22, hjust = 0.5, face = "bold"),
+    legend.text = ggplot2::element_text(size = 12),
+    legend.title = ggplot2::element_text(size = 15),
+    axis.text.x = ggplot2::element_text(angle = 90),
+    axis.text = ggplot2::element_text(size = 18, vjust = 0.5))
+
+
+```
+
+
+
