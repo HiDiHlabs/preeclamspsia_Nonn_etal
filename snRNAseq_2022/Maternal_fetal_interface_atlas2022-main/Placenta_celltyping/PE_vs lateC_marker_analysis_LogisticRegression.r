@@ -452,13 +452,26 @@ seurat_obj_receiver
 table(Idents(seurat_obj_receiver))
 
 #Since a villi can be either a male or a female, correcting for Y-genes is strongly recommended to prevent gender-specific bias in analysis.
-#Correction for dMAC_preterm genes (decidual) from Pique-Regi didn't have a major influence here. 
 pamm_list = FindMarkers(object = seurat_obj_receiver, ident.1 = condition_oi, ident.2 = condition_reference, min.pct = 0.10,
             logfc.threshold=0.25, latent.vars= c("nCount_RNA", "nFeature_RNA", "XIST", "MALAT1", "percent.mt", "pct_chrY"),
             test.use= "LR") %>% rownames_to_column("gene")
 
 head(pamm_list)
 write.csv(pamm_list, file= "./PE_decidua_markers_logreg/vPAMM_PE_vs_lateC_preterm_corrected_040422.csv")
+
+#Alternatively, one can correct for dMAC preterm/labor features since PAMMs are maternal in origin. 
+mac_preterm_features= c("CLDN5", "CD3E", "LILRB5", "FILIP1L", "RORA", "MMP19", "CD163", "SOD2", "BIRC3","SDC4", "ARL4C", "KDM6B", "ANGPTL4", "B4GALT1", "JUND", "NFKB1", "PDE4B", "B4GALT1", "JUND", "NFKB1", "PDE4B",
+"MAFF", "NAMPT", "CD55", "C1QA", "CFLAR", "LMNA", "SAMSN1", "TIPARP", "CCNL1", "FABP5", "LDHB", "LSP1", "SPINT1", "HSPA6", "MATK", "SMAGP", "COL1A2", "COL5A1", "MMP2") 
+
+seurat_obj_receiver <- PercentageFeatureSet(object = seurat_obj_receiver, features = mac_preterm_features, col.name = 'mac_preterm_features')
+
+pamm_list_v2 = FindMarkers(object = seurat_obj_receiver, ident.1 = condition_oi, ident.2 = condition_reference, min.pct = 0.10,
+            logfc.threshold=0.25, latent.vars= c("nCount_RNA", "nFeature_RNA", "mac_preterm_features", "XIST", "MALAT1", "percent.mt", "pct_chrY"),
+            test.use= "LR") %>% rownames_to_column("gene") #one may choose not to put pct_chrY as a covar as PAMM(s) are XIST positive. 
+
+head(pamm_list_v2)
+write.csv(pamm_list_v2, file= "./PE_decidua_markers_logreg/vPAMM_PE_vs_lateC_preterm_labor_corrected_040422.csv")
+
 
 #No preterm/labor signatures were described in Pique-Regi that could be used villi cell-types below:
 #Subset vVEC:
@@ -487,12 +500,12 @@ seurat_obj_receiver = SetIdent(seurat_obj_receiver, value = seurat_obj_receiver[
 table(Idents(seurat_obj_receiver))
 
 #Corrected as few genes make sense for villi:
-fb_preterm_features= c("PLAC8", "ZBTB16", "IFI27", "SERPINE1", "SOD2", "PTGDS", "SLC30A2", "GKN1", "SERPINE2", "GALNT6", "MYOZ1", "ARHGDIB", "GDPD3", "DSG2", "OLFML3", "MT2A", "DCN")
+fb_preterm_features= c("OLFML3", "MT2A", "F3", "DCN", "IGF1")
 seurat_obj_receiver <- PercentageFeatureSet(object = seurat_obj_receiver, features = fb_preterm_features, col.name = 'fb_preterm_features')
 
 #Since a villi can be either a male or a female, correcting for Y-genes is strongly recommended to prevent gender-specific bias in analysis.
 fb_list = FindMarkers(object = seurat_obj_receiver, ident.1 = condition_oi, ident.2 = condition_reference, min.pct = 0.10,
-            logfc.threshold=0.25, latent.vars= c("nCount_RNA", "nFeature_RNA", "fb_preterm_features", "MALAT1", "percent.mt", "pct_chrY"),
+            logfc.threshold=0.25, latent.vars= c("nCount_RNA", "nFeature_RNA", "fb_preterm_features", "MALAT1", "percent.mt", "pct_chrY", "XIST"),
             test.use= "LR") %>% rownames_to_column("gene")
 head(fb_list)
 write.csv(fb_list, file= "./PE_decidua_markers_logreg/vFB_PE_vs_lateC_preterm_corrected_040422.csv")
@@ -509,24 +522,7 @@ table(Idents(seurat_obj_receiver))
 #Correcting for trophoblast based preterm genes is irrelevant here.
 myocyte_list = FindMarkers(object = seurat_obj_receiver, ident.1 = condition_oi, ident.2 = condition_reference, min.pct = 0.10,
             logfc.threshold=0.25, latent.vars= c("nCount_RNA", "nFeature_RNA", "XIST", "MALAT1", "percent.mt", "pct_chrY"),
-            test.use= "LR", max.cells.per.ident=340) %>% rownames_to_column("gene")
+            test.use= "LR") %>% rownames_to_column("gene")
 head(myocyte_list)
 write.csv(myocyte_list, file= "./PE_decidua_markers_logreg/vMC_PE_vs_lateC_preterm_corrected_040422.csv")
 
-#Subset vTcell:
-receiver = "vTcell"
-seurat_obj_receiver= subset(data, idents = receiver)
-Idents(seurat_obj_receiver) <- "donor_id"
-seurat_obj_receiver= subset(seurat_obj_receiver, idents= "Donor-557_2-villi", invert=TRUE) #remove the technical replicate 557_2.
-seurat_obj_receiver = SetIdent(seurat_obj_receiver, value = seurat_obj_receiver[["time"]])
-table(Idents(seurat_obj_receiver))
-
-#seurat_obj_receiver <- PercentageFeatureSet(object = seurat_obj_receiver, features = c("SLC30A2", "GKN1", "SERPINE2", "GALNT6", "MYOZ1", "ARHGDIB", "GDPD3", "DSG2", "IFI27"),
-  #col.name = 'Tcells_preterm_features') #T-cells are maternal in origin. 
-#Since a villi can be either a male or a female, correcting for Y-genes is strongly recommended to prevent gender-specific bias in analysis.
-#Correcting for trophoblast based preterm genes is irrelevant here.
-tcell_list = FindMarkers(object = seurat_obj_receiver, ident.1 = condition_oi, ident.2 = condition_reference, min.pct = 0.10,
-            logfc.threshold=0.25, latent.vars= c("nCount_RNA", "nFeature_RNA", "XIST", "MALAT1", "percent.mt", "pct_chrY"),
-            test.use= "LR") %>% rownames_to_column("gene")
-head(tcell_list)
-write.csv(tcell_list, file= "./PE_decidua_markers_logreg/vTcell_PE_vs_lateC_preterm_corrected_040422.csv")
